@@ -1,60 +1,62 @@
 #include "SimpleBuffer.h"
 #include <malloc.h>
 
-///////////// CSimpleBuffer ////////////////
-CSimpleBuffer::CSimpleBuffer()
+namespace three_year
 {
-	m_buffer = NULL;
-
-	m_alloc_size = 0;
-	m_write_offset = 0;
-}
-
-CSimpleBuffer::~CSimpleBuffer()
-{
-	m_alloc_size = 0;
-	m_write_offset = 0;
-	if (m_buffer)
+	CSimpleBuffer::CSimpleBuffer()
 	{
-		free(m_buffer);
 		m_buffer = NULL;
+
+		m_alloc_size = 0;
+		m_write_offset = 0;
 	}
-}
 
-void CSimpleBuffer::Extend(uint32_t len)
-{
-	m_alloc_size = m_write_offset + len;
-	m_alloc_size += m_alloc_size >> 2;	// increase by 1/4 allocate size
-	uchar_t* new_buf = (uchar_t*)realloc(m_buffer, m_alloc_size);
-	m_buffer = new_buf;
-}
-
-uint32_t CSimpleBuffer::Write(void* buf, uint32_t len)
-{
-	if (m_write_offset + len > m_alloc_size)
+	CSimpleBuffer::~CSimpleBuffer()
 	{
-		Extend(len);
+		m_alloc_size = 0;
+		m_write_offset = 0;
+		if (m_buffer)
+		{
+			free(m_buffer);
+			m_buffer = NULL;
+		}
 	}
 
-	if (buf)
+	void CSimpleBuffer::Extend(uint32_t len)
 	{
-		memcpy(m_buffer + m_write_offset, buf, len);
+		m_alloc_size = m_write_offset + len;
+		m_alloc_size += m_alloc_size >> 2;	// increase by 1/4 allocate size
+		uchar_t* new_buf = (uchar_t*)realloc(m_buffer, m_alloc_size);
+		m_buffer = new_buf;
 	}
 
-	m_write_offset += len;
+	uint32_t CSimpleBuffer::Write(void* buf, uint32_t len)
+	{
+		if (m_write_offset + len > m_alloc_size)
+		{
+			Extend(len);
+		}
 
-	return len;
-}
+		if (buf)
+		{
+			memcpy(m_buffer + m_write_offset, buf, len);
+		}
 
-uint32_t CSimpleBuffer::Read(void* buf, uint32_t len)
-{
-	if (len > m_write_offset)
-		len = m_write_offset;
+		m_write_offset += len;
 
-	if (buf)
-		memcpy(buf, m_buffer, len);
+		return len;
+	}
 
-	m_write_offset -= len;
-	memmove(m_buffer, m_buffer + len, m_write_offset);
-	return len;
+	uint32_t CSimpleBuffer::Read(void* buf, uint32_t len)
+	{
+		if (len > m_write_offset)
+			len = m_write_offset;
+
+		if (buf)
+			memcpy(buf, m_buffer, len);
+
+		m_write_offset -= len;
+		memmove(m_buffer, m_buffer + len, m_write_offset);
+		return len;
+	}
 }

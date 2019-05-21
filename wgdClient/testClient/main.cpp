@@ -8,6 +8,8 @@
 
 #define TEST_SIZE  (200)
 
+using namespace three_year;
+
 class CMyNotify:public CNotify
 {
 public:
