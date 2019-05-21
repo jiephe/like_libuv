@@ -1,2 +1,2 @@
 # like_libuv
-one windows tcp server with single thread like libuv
+one simple windows tcp server with single thread like libuv.
