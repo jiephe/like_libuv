@@ -88,7 +88,6 @@
     <ClCompile Include="..\src\Lock.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\SimpleBuffer.cpp" />
-    <ClCompile Include="..\src\Thread.cpp" />
     <ClCompile Include="..\src\WgdConn.cpp" />
     <ClCompile Include="..\src\WgdServer.cpp" />
   </ItemGroup>
@@ -102,7 +101,6 @@
     <ClInclude Include="..\src\Lock.h" />
     <ClInclude Include="..\src\SimpleBuffer.h" />
     <ClInclude Include="..\src\Task.h" />
-    <ClInclude Include="..\src\Thread.h" />
     <ClInclude Include="..\src\WgdConn.h" />
     <ClInclude Include="..\src\WgdServer.h" />
   </ItemGroup>

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ostype.h"
-#include <string>
 #include "internal.h"
 
 namespace three_year
@@ -13,21 +12,10 @@ namespace three_year
 
 		virtual ~CBaseSocket();
 
-		SOCKET GetSocket() { return m_socket; }
-		void SetSocket(SOCKET fd) { m_socket = fd; }
-		void SetState(uint8_t state) { m_state = state; }
-
-		void SetRemoteIP(char* ip) { m_remote_ip = ip; }
-		void SetRemotePort(uint16_t port) { m_remote_port = port; }
+	public:
 		void SetSendBufSize(uint32_t send_size);
 		void SetRecvBufSize(uint32_t recv_size);
 
-		const char*	GetRemoteIP() { return m_remote_ip.c_str(); }
-		uint16_t	GetRemotePort() { return m_remote_port; }
-		const char*	GetLocalIP() { return m_local_ip.c_str(); }
-		uint16_t	GetLocalPort() { return m_local_port; }
-
-	public:
 		void _SetNonblock();
 		void _SetReuseAddr();
 		void _SetNoDelay();
@@ -52,14 +40,13 @@ namespace three_year
 		bool _IsBlock(int error_code);
 		void _SetAddr(const char* ip, const uint16_t port, sockaddr_in* pAddr);
 
-	private:
-		std::string		m_remote_ip;
-		uint16_t		m_remote_port;
-		std::string		m_local_ip;
-		uint16_t		m_local_port;
-
-		uint8_t			m_state;
-		SOCKET			m_socket;
+	public:
+		META_FUNCTION_H(std::string, remote_ip)
+		META_FUNCTION_H(uint16_t, remote_port)
+		META_FUNCTION_H(std::string, local_ip)
+		META_FUNCTION_H(uint16_t, local_port)
+		META_FUNCTION_H(uint8_t, state)
+		META_FUNCTION_H(SOCKET, socket)
 	};
 }
 

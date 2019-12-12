@@ -27,8 +27,10 @@ int CMyNotify::onData(void* data, int len)
 	printf("Have receive Server nParentCmd:[%d] sub: [%d] totolSize:[%d]\n", pHead->nParentCmd, pHead->nSubCmd, len);
 
 	if (pHead->nParentCmd == 0 && pHead->nSubCmd == 100)
-		exit(0);
-
+	{
+		//exit(0);
+	}
+		
 	return 0;
 }
 

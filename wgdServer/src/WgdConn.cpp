@@ -1,31 +1,34 @@
-#include "WgdConn.h"
 #include <stdio.h>
+
+#include "WgdConn.h"
 #include "BaseSocket.h"
 #include "WgdServer.h"
 #include "CommonDef.h"
 #include "CommonNet.h"
+#include "SimpleBuffer.h"
 
 namespace three_year
 {
-	CWGDConn::CWGDConn(CWgdServer* pNotify, socketPtr socket) :m_pServer(pNotify), base_socket_(socket)
-	{}
+	CWGDConn::CWGDConn(wgdSvrPtr wgd_svr, socketPtr socket) :wgd_svr_(wgd_svr), base_socket_(socket)
+	{
+		in_buf_ = std::make_shared<CSimpleBuffer>();
+		out_buf_ = std::make_shared<CSimpleBuffer>();
+	}
 
 	CWGDConn::~CWGDConn()
-	{
-		int a = 1;
-	}
+	{}
 
 	void CWGDConn::OnClose()
 	{
-		net_handle_t fd = base_socket_->GetSocket();
+		net_handle_t fd = base_socket_->get_socket();
 		base_socket_->Close();
-		m_pServer->RemoveWgdConn(fd);
+		wgd_svr_->RemoveWgdConn(fd);
 	}
 
 	int CWGDConn::OnRead()
 	{
 		u_long avail = 0;
-		int nRet = ioctlsocket(base_socket_->GetSocket(), FIONREAD, &avail);
+		int nRet = ioctlsocket(base_socket_->get_socket(), FIONREAD, &avail);
 		if ((nRet == SOCKET_ERROR) || (avail == 0))
 		{
 			OnClose();
@@ -33,19 +36,14 @@ namespace three_year
 		}
 
 		//printf("OnRead : \n");
-
-		char szRcvBuf[8192] = { 0 };
-
-		int READ_BUF_SIZE = 8192;
-
-		for (;;)
+		char szRcvBuf[MAX_SEND_RCV_LEN] = { 0 };
+		while (true)
 		{
-			uint32_t free_buf_len = m_in_buf.GetAllocSize() - m_in_buf.GetWriteOffset();
-			if (free_buf_len < READ_BUF_SIZE)
-				m_in_buf.Extend(READ_BUF_SIZE);
+			uint32_t free_buf_len = in_buf_->GetAllocSize() - in_buf_->GetWriteOffset();
+			if (free_buf_len < MAX_SEND_RCV_LEN)
+				in_buf_->Extend(MAX_SEND_RCV_LEN);
 
-			int nRet = base_socket_->Recv(m_in_buf.GetBuffer() + m_in_buf.GetWriteOffset(), READ_BUF_SIZE);
-			//printf("receice : %d\n", nRet);
+			int nRet = base_socket_->Recv(in_buf_->GetBuffer() + in_buf_->GetWriteOffset(), MAX_SEND_RCV_LEN);
 			if (SOCKET_ERROR == nRet)
 			{
 				if ((WSAGetLastError() == WSAEINTR))
@@ -54,45 +52,40 @@ namespace three_year
 					break;
 			}
 
-			m_in_buf.IncWriteOffset(nRet);
+			in_buf_->IncWriteOffset(nRet);
 		}
 
-		//这里一定要循环把所有的消息都处理掉 因为一次接受的数据可能包含了多个消息结构体
-		while (ParseBuffer(m_in_buf) != -1) {}
+		while (ParseBuffer(in_buf_) != -1) 
+		{}
+		
 		return 0;
 	}
 
-	int32_t CWGDConn::ParseBuffer(CSimpleBuffer& simpleBuffer)
+	int32_t CWGDConn::ParseBuffer(bufferPtr buff)
 	{
-		uint32_t uintHave = simpleBuffer.GetWriteOffset();
+		uint32_t uintHave = buff->GetWriteOffset();
 		int32_t nHeadSize = sizeof(WGDHEAD);
-
 		if (uintHave < nHeadSize)
-		{
 			return -1;
-		}
 
-		uchar_t* pBuffer = simpleBuffer.GetBuffer();
+		uchar_t* pBuffer = buff->GetBuffer();
 		WGDHEAD* pHead = (WGDHEAD*)pBuffer;
 		int32_t nTotalSize = nHeadSize + pHead->nDataLen;
 		if (uintHave < nTotalSize)
-		{
 			return -1;
-		}
 
-		return DealBuffer(simpleBuffer);
+		return DealBuffer(buff);
 	}
 
-	int32_t CWGDConn::DealBuffer(CSimpleBuffer & simpleBuffer)
+	int32_t CWGDConn::DealBuffer(bufferPtr buff)
 	{
-		uchar_t* pBuffer = simpleBuffer.GetBuffer();
+		uchar_t* pBuffer = buff->GetBuffer();
 		WGDHEAD* pHead = (WGDHEAD*)pBuffer;
 		int32_t nTotalSize = sizeof(WGDHEAD) + pHead->nDataLen;
 
-		m_pServer->OnReceivedNotify(base_socket_->GetSocket(), pBuffer, nTotalSize);
+		wgd_svr_->OnReceivedNotify(base_socket_->get_socket(), pBuffer, nTotalSize);
 
-		simpleBuffer.Read(NULL, nTotalSize);
-
+		buff->Read(NULL, nTotalSize);
 		return 0;
 	}
 
@@ -100,29 +93,27 @@ namespace three_year
 	{
 		int error = 0;
 		socklen_t len = sizeof(error);
-		getsockopt(base_socket_->GetSocket(), SOL_SOCKET, SO_ERROR, (char*)&error, &len);
+		getsockopt(base_socket_->get_socket(), SOL_SOCKET, SO_ERROR, (char*)&error, &len);
 		if (error)
 		{
 			OnClose();
 			return;
 		}
 
-		while (m_out_buf.GetWriteOffset() > 0)
+		while (out_buf_->GetWriteOffset() > 0)
 		{
-			int send_size = m_out_buf.GetWriteOffset();
+			int send_size = out_buf_->GetWriteOffset();
 			if (send_size > NETLIB_MAX_SOCKET_BUF_SIZE)
-			{
 				send_size = NETLIB_MAX_SOCKET_BUF_SIZE;
-			}
 
-			int ret = base_socket_->Send(m_out_buf.GetBuffer(), send_size);
+			int ret = base_socket_->Send(out_buf_->GetBuffer(), send_size);
 			if (ret <= 0)
 			{
 				ret = 0;
 				break;
 			}
 
-			m_out_buf.Read(NULL, ret);
+			out_buf_->Read(NULL, ret);
 		}
 	}
 
@@ -134,17 +125,14 @@ namespace three_year
 		while (remain > 0)
 		{
 			int send_size = remain;
-			if (send_size > 8192)
-				send_size = 8192;
+			if (send_size > MAX_SEND_RCV_LEN)
+				send_size = MAX_SEND_RCV_LEN;
 
 			int nSend = base_socket_->Send((char*)data + offset, send_size);
 			if (nSend <= 0)
 			{
 				if ((WSAGetLastError() == WSAEINPROGRESS) || (WSAGetLastError() == WSAEWOULDBLOCK))
-				{
 					continue;
-				}
-
 				break;
 			}
 

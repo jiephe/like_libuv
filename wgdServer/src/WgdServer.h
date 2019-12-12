@@ -10,9 +10,9 @@ namespace three_year
 {
 	typedef std::map<net_handle_t, connPtr>			ConnMap_t;
 	using ev_cb = std::function<void(SOCKET, int)>;
-	using void_cb = std::function<void()>;
+	using async_cb = std::function<void()>;
 
-	class CWgdServer : public IServerNotify
+	class CWgdServer : public IServerNotify, public std::enable_shared_from_this<CWgdServer>
 	{
 	public:
 		CWgdServer(const std::string& ip, uint16_t port);
@@ -20,24 +20,21 @@ namespace three_year
 		virtual ~CWgdServer();
 
 	public:
-		void AddEvCb(SOCKET s, ev_cb cb);
+		void AddReadEvCallback(SOCKET s, ev_cb cb);
+
+		void AddWriteEvCallback(SOCKET s, ev_cb cb);
 
 		void OnAccept(SOCKET s, int event);
 
 	public:
-		virtual int			OnExcept(net_handle_t fd);
-
 		virtual int			OnConnect(net_handle_t fd) { return 0; }
-
-		virtual int			ReConnect(net_handle_t fd);
 
 		virtual int			OnReceivedNotify(net_handle_t fd, void* pData, int len);
 
 		void	OnTest(net_handle_t fd, void* pData, int len);
 
 	public:
-		//like libuv
-		void uv_init_async(void_cb cb);
+		void uv_init_async(async_cb cb);
 
 		void uv_async_send();
 
@@ -54,32 +51,34 @@ namespace three_year
 		void RemoveWgdConn(net_handle_t handle);
 
 	public:
-		bool	init();
-
-		int		StartWork();
+		void	StartWork();
 
 		void	loop();
 
 	private:
 		void run();
 
-		void async_cb();
+		void async();
+
 	private:
 		std::string						ip_;
+
 		uint16_t						port_;
 
-		bool							m_bRunning;
+		bool							b_run_;
 
-		fd_set							m_read_set;
-		fd_set							m_write_set;
-		fd_set							m_excep_set;
+		fd_set							read_set_;
+		fd_set							write_set_;
+		fd_set							excep_set_;
 
-		ConnMap_t						m_conn_map;
+		ConnMap_t						conn_map_;
 
-		std::map<SOCKET, ev_cb>			m_ev_map;
+		std::map<SOCKET, ev_cb>			ev_read_callback_;
 
-		SOCKET							fds[2];		//for async from other thread --invoke select
+		std::map<SOCKET, ev_cb>			ev_write_callback_;
 
-		void_cb							callback_;
+		SOCKET							pair_fd_[2];		//for async from other thread --invoke select
+
+		async_cb						async_cb_;
 	};
 }
