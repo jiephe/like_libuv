@@ -39,7 +39,7 @@ int main()
  	std::shared_ptr<CMyNotify> pNofity = std::make_shared<CMyNotify>();
 	std::shared_ptr<CJSClient> cjsClient = std::make_shared<CJSClient>(pNofity.get());
 
-	int nRet = cjsClient->Connect("10.1.1.167", 32005);
+	int nRet = cjsClient->Connect("172.16.11.81", 12000);
 	if (nRet == -1)
 	{
 		printf("Connect Main Server fail\n");
@@ -48,7 +48,8 @@ int main()
 
 	std::vector<char> buf(TEST_SIZE, 'a');
 	WGDHEAD head;
-	head.nSubCmd = 0;
+	head.nParentCmd = 12;
+	head.nSubCmd = 34;
 	head.nDataLen = TEST_SIZE;
 	std::vector<char> send_buf;
 	send_buf.insert(send_buf.end(), (char*)&head, (char*)&head + sizeof(WGDHEAD));
@@ -62,6 +63,11 @@ int main()
 		{
 			printf("q pressed, quiting...\n");
 			break;
+		}
+		else if (c == 's') {
+			printf("begin send data\n");
+			cjsClient->Send(&send_buf[0], send_buf.size());
+			continue;
 		}
 	}
 

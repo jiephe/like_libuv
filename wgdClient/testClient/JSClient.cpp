@@ -291,6 +291,8 @@ namespace three_year
 			//CreateSocket();
 			//ReConnect(m_strIP.c_str(), m_Port);
 
+			printf("ioctlsocket, fd[%d] \n", m_fd);
+
 			return 0;
 		}
 
@@ -402,6 +404,8 @@ namespace three_year
 
 	int CJSClient::OnExcept(SOCKET fd)
 	{
+		printf("OnExcept, fd[%d] \n", fd);
+
 		closesocket(m_fd);
 
 		return 0;

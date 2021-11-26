@@ -5,7 +5,7 @@ using namespace three_year;
 
 int main()
 {
-	auto ws = std::make_shared<CWgdServer>("0.0.0.0", 32005);
+	auto ws = std::make_shared<CWgdServer>("0.0.0.0", 50052);
 
 	printf("Server begin to work....\n");
 

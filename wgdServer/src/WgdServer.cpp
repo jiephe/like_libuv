@@ -335,7 +335,7 @@ namespace three_year
 	{
 		WGDHEAD* pHead = (WGDHEAD*)pData;
 
-		printf("Have Receive Data Cmd: %d\n", pHead->nSubCmd);
+		printf("Have Receive Data from fd: [%d] parentCmd: %d, Cmd: %d\n", fd, pHead->nParentCmd, pHead->nSubCmd);
 
 		connPtr pConn = FindWgdConn(fd);
 		if (pConn.get())
@@ -343,8 +343,8 @@ namespace three_year
 			std::vector<char> buf(1024, 'a');
 			std::vector<char> send_buf;
 			WGDHEAD wh;
-			wh.nParentCmd = pHead->nSubCmd;
-			wh.nSubCmd = 100;
+			wh.nParentCmd = pHead->nParentCmd;
+			wh.nSubCmd = pHead->nSubCmd;
 			wh.nDataLen = buf.size();
 			send_buf.insert(send_buf.end(), (char*)&wh, (char*)&wh + sizeof(WGDHEAD));
 			send_buf.insert(send_buf.end(), buf.begin(), buf.end());
